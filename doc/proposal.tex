@@ -1,0 +1,57 @@
+\documentclass[]{article}
+\usepackage{multicol}
+\usepackage[top=0.5in]{geometry}
+\title{17-355 Program Analysis: Project Proposal}
+\author{Jacob Van Buren}
+\date{2017--04--11}
+
+\begin{document}
+\pagenumbering{gobble}
+\maketitle
+\begin{multicols}{2}
+\section{Project Idea}
+My project idea is to implement a symbolic static analyzer for analyzing contracts in the C0 language.
+It would act as a C0 compiler that also attempts to verify the safety of the contracts expressed in the source code.
+
+\section{Background}
+C0 is a safety-oriented small C-like language developed at CMU. It was designed for teaching beginners reasoning about imperative programs in a C-like language, without having to worry about undefined behavior or complex semantics.
+As it was designed to teach beginners about reasoning, C0 supports a number of ``contracts'' (assertions) for expressing constraints about the execution state that should hold during runtime.
+
+The current C0 compiler \texttt{cc0} uses the \texttt{-d} flag to enable runtime checking of these assertions. This runtime checking allows programmers to express any conditions they want about their code and dynamicaly check it, such as verifying a function computes the same thing as a given specification function. However it also means the programmer is required to write test cases sufficient to convice him or her that the contracts hold in all cases. Additionally, runtime checking of the assertions can lead to significant overheads when executing code.
+
+
+\section{Project Details}
+\subsection{Components and Design}
+The symbolic analysis kernel used will be the z3 theorem prover due to it's power, documentation, and language bindings.
+The static analysis pass that uses it will be an LLVM analysis pass that works on the LLVM intermediate representation. It will be written in C++14.
+The overall project will likely be a python script that wraps both \texttt{cc0} and Clang / LLVM and automatically runs both based on command-line input
+
+\paragraph{By the first milestone}
+\begin{itemize}
+  \item Have a development environment set up with \texttt{cc0} and Clang/LLVM 4 inside a Linux VM for portability and stability
+  \item Given a C0 program with a single side-effect-free assertion in \texttt{main}, be able to check assertions about integer math
+  \item Have a simple python script as a front end for ease of use when running and testing
+\end{itemize}
+
+\paragraph{By the second milestone}
+\begin{itemize}
+  \item Be able to express simple constraints involving conditionals, loops, and memory
+  \footnote{I don't know how hard memory will be. It's possible that I will attempt to only focus on pure programs}
+\end{itemize}
+
+\paragraph{By the due date}
+\begin{itemize}
+  \item Enable some version of symbolic inter-procedural analysis.
+  \item Include test cases demonstrating where the analysis pass is useful and where it fails
+\end{itemize}
+\paragraph{Stretch goals}
+\begin{itemize}
+  \item Treat provably unneeded assertions as dead code and remove them from the final executable.
+\end{itemize}
+
+\section{Goals}
+If successful, this project will be able to eliminate checks that can be proven to never fail.
+Furthermore it will be able to warn the programmer if it is unable to successfully verify certain assertions, and display an error if it can prove there is an input for which an assertion will fail.
+\end{multicols}
+
+\end{document}

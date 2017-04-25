@@ -1,0 +1,33 @@
+\documentclass[12pt]{article}
+\usepackage{multicol}
+\usepackage[top=0.5in]{geometry}
+\title{17-355 Program Analysis: Z0 Milestone Report}
+\author{Jacob Van Buren}
+\date{2017--04--18}
+
+\begin{document}
+\pagenumbering{gobble}
+\maketitle
+
+\section{Project Idea}
+My project idea was to implement a symbolic static analyzer for analyzing contracts in the C0 language.
+It would act as a C0 compiler that also attempts to verify the safety of the contracts expressed in the source code.
+
+
+
+\section{Project Details}
+\subsection{Components and Design}
+The symbolic analysis kernel used will be the Z3 theorem prover due to its power, documentation, and language bindings.
+The static analysis pass is LLVM analysis pass that works on the LLVM intermediate representation. It's written in C++14.
+The overall project is a python script that wraps both \texttt{cc0} and Clang / LLVM / Z3 and automatically checks the project after compilation.
+\section{Progress}
+Currently, in terms of development setup, I have a dedicated development VM and a github repo. (The repo is private but I could add you as a collaborator.)
+I've wrapped the \texttt{cc0} compiler with a python script that will compile C0 files to LLVM bitcode and simplify them slightly while including debug info.
+
+Currently the analysis pass loops through the function bodies and prints out instructions. Most of the difficulty now is figuring out how to interface with Z3, and how to handle more advanced control flow. Z3 is well-documented, and I am confident it would be working in full if I hadn't had so many other things to do at the same time.
+
+The SSA form of the LLVM IR lends itself particularly well to symbolic analyisis, as until I have to deal with loops, there is a simple one-to-one correspondence between the IR body and the symbolic kernel's representation of the program.
+
+Currently the project is slightly behind the intended amount of progress. This is partially due to starting a bit late, and I had trouble setting up my development environment.
+
+\end{document}

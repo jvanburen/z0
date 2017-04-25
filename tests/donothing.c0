@@ -1,0 +1,17 @@
+int return1()
+//@requires true;
+//@ensures \result == 1;
+{
+  return 1;
+}
+
+void doNothing() {
+  return;
+}
+
+void eat1(int x)
+//@requires x == 1;
+//@ensures true;
+{
+
+}

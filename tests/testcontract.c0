@@ -1,7 +1,7 @@
 
 int double_me(int x)
-//@requres x > 0
-//@ensures x > 1
+//@requires x > 0;
+//@ensures x > 1;
 {
   if (x <= 0)
     return -1;

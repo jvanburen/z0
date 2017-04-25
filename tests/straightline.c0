@@ -1,0 +1,31 @@
+//test return 21212121
+// test div and mod
+int main()
+//@requires 1 != 2;
+//@ensures \result == 21212122;
+{
+  int a;
+  int b;
+  int c;
+  int d;
+  int e;
+  int f;
+  int g;
+  int h;
+
+  a = 9 / 4; b = 9 % 4;   // 2 1
+  c = -9 / 4; d = -9 % 4; // -2 -1
+  e = 9 / -4; f = 9 % -4; // -2 1
+  g = -9 / -4; h = -9 % -4; // 2 -1
+  return -h+10*(g+10*(f+10*(-e+10*(-d+10*(-c+10*(b+10*a))))));
+}
+
+int other (int x)
+//@requires x == 2;
+//@requires x != 5;
+//@ensures \result == 21212121;
+{
+  int y = x + 21212120;
+  //@assert y == 21212122;
+  return y-1;
+}

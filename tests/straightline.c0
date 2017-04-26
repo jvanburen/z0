@@ -2,7 +2,7 @@
 // test div and mod
 int main()
 //@requires 1 != 2;
-//@ensures \result == 21212122;
+//@ensures \result == 21212121;
 {
   int a;
   int b;

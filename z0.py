@@ -20,8 +20,8 @@ OPT = LLVM_BIN_PREFIX + "opt"
 DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
 CC0_OPTIONS = ['-d', '--no-log', "--save-files","-c", "-###", "--standard=c0"]
-CLANG_OPTIONS = ["-O0",'-std=c99', '-fwrapv', '-w']
-OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
+CLANG_OPTIONS = ["-O0",'-std=c99', '-fwrapv', '-w', '-g']
+OPT_BEFORE_PASSES = ['-debug', '-mem2reg', '-jump-threading']
 Z3_PASS_NAME = ["-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
                 "-load", "src/z0.so", "-z0"]
 

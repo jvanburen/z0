@@ -4,6 +4,7 @@
 #include "llvm/IR/Value.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Argument.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "z3++.h"
 #include <string>
@@ -86,12 +87,12 @@ public:
                 DEBUG(val->dump());
                 throw StopZ0("weird-width integer");
             }
-        } else if (isa<Instruction>(val)) {
-            if (llvm::IntegerType const* t = dyn_cast<IntegerType>(val->getType())) {
+        } else if (isa<Instruction>(val) || isa<Argument>(val)) {
+            if (IntegerType const* t = dyn_cast<IntegerType>(val->getType())) {
                 return cxt.constant(symbol(val), cxt.bv_sort(t->getBitWidth()));
             } else {
                 DEBUG(val->dump());
-                throw StopZ0("Instruction doesn't have integer type!");
+                throw StopZ0("Instruction/argument doesn't have integer type!");
             }
         } else {
             DEBUG(val->dump());

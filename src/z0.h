@@ -63,12 +63,12 @@ public:
         DEBUG(dbgs() << "Z0 pass running...\n");
         for (Function &F : M) {
             try {
-                outs() << "Analyzing function " << F.getName() << "\n";
-                if (F.getName().str() ==  "_c0_main") {
-                    DEBUG(dbgs() << "Oh, found main!\n");
+                if (F.getName().startswith("_c0_")) {
+                    outs() << "Analyzing function " << F.getName().drop_front(4) << "...\n";
                     for (BasicBlock &BB : F) { // there should only be one for now
                         analyze_basicblock(&BB);
                     }
+                    outs() << "OK!\n";
                 }
             } catch (StopZ0 e) {
                 DEBUG(dbgs() << "Z0 stopped cleanly via exception.\n");
@@ -166,7 +166,7 @@ private: /* Z0-specific logic */
     }
 
     bool is_precondition(CallInst const* ci) {
-        return false; /* TODO: change this in some horrible way */
+        return ci->getCalledFunction()->getName() == "z0_requires";
     }
 
     void check_div(z3::expr a, z3::expr b);

@@ -4,9 +4,7 @@
  */
 #include "../z0lib/c0runtime.h"
 
-#define Z0_IDENTITY(name) void z0_##name(bool cond) {\
-    if (cond) c0_abort("@name annotation failed!");\
-}
+#define Z0_IDENTITY(name) bool z0_##name(bool cond) { return cond; };
 
 Z0_IDENTITY(requires);       // Indicates a precondition
 Z0_IDENTITY(ensures);        // Indicates a postcondition

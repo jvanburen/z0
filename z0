@@ -21,7 +21,7 @@ DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
 CC0_LIBOPTIONS = ['-L', 'include', '-L', 'lib']
 CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
-CLANG_OPTIONS = ["-O0",'-std=c99', '-fwrapv', '-w', '-g']
+CLANG_OPTIONS = ["-O0",'-std=c99', '-fwrapv', '-w', '-g', '-D', 'IGNORE_CC0_ASSERT']
 OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
 Z3_PASS_NAME = ["-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
                 "-load", "lib/z0.so", "-z0"]

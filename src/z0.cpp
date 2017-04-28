@@ -50,11 +50,11 @@ Z0::display_counterexample(void) {
 void
 Z0::analyze_z0_assert(CallInst const* ci) {
     Value const* cond = ci->getOperand(0);
-    DEBUG(dbgs() << "Analyzing assertion ");
-    DEBUG(ci->dump());
-    DEBUG(dbgs() << "\n");
     if (is_precondition(ci)) {
-        state.add(state.z3_repr(cond));
+        DEBUG(dbgs() << "Analyzing precondition ");
+        DEBUG(ci->dump());
+        DEBUG(dbgs() << "\n");
+        state.assert_eq(state.z3_repr(cond), false_expr);
         switch (state.check()) {
             case z3::sat:
                 DEBUG(dbgs() << "Precondition ok\n"); break;
@@ -64,9 +64,12 @@ Z0::analyze_z0_assert(CallInst const* ci) {
                 errs() << "Precondition could not be verified!\n"; break;
         }
     } else { // not a precondition
+        DEBUG(dbgs() << "Analyzing assertion ");
+        DEBUG(ci->dump());
+        DEBUG(dbgs() << "\n");
         state.push();
         {
-            state.add(state.z3_repr(cond) != true_expr);
+            state.assert_eq(state.z3_repr(cond), false_expr);
             switch (state.check()) {
                 case z3::sat:
                     DEBUG(dbgs() << "Found counterexample!\n");
@@ -82,7 +85,7 @@ Z0::analyze_z0_assert(CallInst const* ci) {
         }
         state.pop();
         /* We add the assertion in case we couldn't derive it */
-        state.add(state.z3_repr(cond) == true_expr);
+        state.assert_eq(state.z3_repr(cond), true_expr);
     }
 }
 

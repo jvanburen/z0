@@ -30,7 +30,11 @@
 // Generates an lvalue of type ty for the ith value in A
 #define cc0_array_sub(ty, A, i) (*(ty*)c0_array_sub(A, i, sizeof(ty)))
 
-#define cc0_assert(cond, _) cond
+#ifdef IGNORE_CC0_ASSERT
+#define cc0_assert(cond, reason) ((void) 0)
+#else
+#define cc0_assert(cond, reason) c0_assert(cond, reason)
+#endif
 
 #define cc0_tag(ty, tyrep, e) (c0_tag_ptr(tyrep, e))
 #define cc0_untag(ty, tyrep, e) ((ty)c0_untag_ptr(tyrep, e))

@@ -3,3 +3,13 @@ Output/*
 *.gz
 *.bc
 doc/Output/*
+**/a.out
+.DS_Store
+cc0/*
+z0milestone1.zip
+z0milestone1/*
+**.o
+tests/*.ll
+tests/*.c
+tests/*.bc
+**.pch

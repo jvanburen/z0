@@ -1,4 +1,0 @@
-# Z0 Static Analysis
-
-This isn't supposed to build, it's configured for the VM I had, and I didn't want to send 20GB over email.
-The Z3 interface is in-progress so it's pretty rough around the edges, but it's starting to look like what I want.

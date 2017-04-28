@@ -4,19 +4,20 @@
 #include "llvm/IR/Value.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "z3++.h"
 #include <string>
 #include <unordered_map>
+#include <map>
+#include <tuple>
 #include <cstdint>
 
-using std::unordered_map;
 using std::string;
+using std::tuple;
 using namespace llvm;
 
 #define DEBUG_TYPE "Z0State" /* For LLVM's DEBUG macro */
 
-/* Implement bitvector arithmetic*/
-#define BV_ARITH(state, operation, a, b) z3::to_expr((state).cxt, Z3_mk_bv##operation((state).cxt, (a), (b)))
 
 struct StopZ0 final {
     std::string const why;
@@ -24,19 +25,19 @@ struct StopZ0 final {
         assert(why != nullptr);
         DEBUG(dbgs() << "Stopping Z0 cleanly with exception (" << why << ")...\n");
     }
-    explicit StopZ0(std::string const& why) :StopZ0(why.c_str()) {
-        DEBUG(dbgs() << "Stopping Z0 cleanly with exception (" << why << ")...\n");
-    }
+    explicit StopZ0(std::string const& why) :StopZ0(why.c_str()) {}
 };
-enum BitWidth {I1=1u,I32=32u};
+enum BitWidth { I1=1u, I32=32u };
 /* Z0 solver state */
 class Z0State final {
     // Identifiers:
     unsigned int count = 0;
     std::unordered_map<Value const*, z3::symbol> val2symbol;
-    std::unordered_map<std::string, z3::expr> ident2expr;
 
 public:
+    using LocalInfo = std::pair<DILocalVariable const*, ValueAsMetadata const*>;
+    std::map<StringRef, LocalInfo> name2val;
+
     z3::context cxt;
     z3::sort z0_int_sort = cxt.bv_sort(32);
 
@@ -44,8 +45,9 @@ public:
 
     explicit Z0State(void) : solver(cxt) {}
 
-    void update_ident(std::string name, z3::expr expr) {
-        ident2expr[name] = expr;
+    void update_ident(DILocalVariable const* local, ValueAsMetadata const* val) {
+        DEBUG(dbgs() << "updating entry for " << local->getName() << "\n");
+        name2val[local->getName()] = {local, val};
     }
 
     z3::expr bv_val(int32_t i, BitWidth bitwidth) {
@@ -60,6 +62,12 @@ public:
         }
         return it->second;
     }
+
+    z3::symbol* lookup_symbol(Value const* v) {
+        auto it = val2symbol.find(v);
+        return (it == val2symbol.end()) ? nullptr : &(it->second);
+    }
+
 
     /* Requires v to have an integer llvm type */
     z3::expr bv_constant(Value const* v) {
@@ -109,6 +117,13 @@ public:
         return solver.check();
     }
 
+    z3::model get_model(void) {
+        return solver.get_model();
+    }
+
+    z3::expr z3_to_expr(Z3_ast ast) {
+        return z3::to_expr(cxt, ast);
+    }
 };
 
 #undef DEBUG_TYPE

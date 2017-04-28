@@ -1,8 +1,10 @@
+#use <z0>
+
 //test return 21212121
 // test div and mod
 int main()
-//@requires 1 != 2;
-//@ensures \result == 21212121;
+//@requires z0_requires(1 != 2);
+//@ensures z0_ensures(\result == 21212122);
 {
   int a;
   int b;
@@ -20,12 +22,46 @@ int main()
   return -h+10*(g+10*(f+10*(-e+10*(-d+10*(-c+10*(b+10*a))))));
 }
 
-int other (int x)
-//@requires x == 2;
-//@requires x != 5;
-//@ensures \result == 21212121;
+int pow (int x, int y)
+//@requires z0_requires(y >= 0);
+{
+  if (y == 0)
+    return 1;
+  else
+    return x * pow(x, y-1);
+}
+
+int loop(int x)
+//@requires z0_requires(x == 2);
+//@requires z0_requires(x != 5);
+//@ensures z0_ensures(\result == 21212121);
 {
   int y = x + 21212120;
   //@assert y == 21212122;
+//  int z = 0;
+//  for (int i = 0; i < x; ++i)
+//  //@loop_invariant z0_loop_invariant(i == z && i + z == )
+//  {
+//    /
+//  }
   return y-1;
+}
+
+int fastpow (int x, int y)
+//@requires z0_requires(y >= 0);
+//@ensures z0_ensures(\result == pow(x, y));
+{
+  int r = 1;
+  int b = x;
+  int e = y;
+  while (e > 0)
+    //@loop_invariant z0_loop_invariant(r * pow(b,e) == pow(x,y));
+    //@loop_invariant z0_loop_invariant(e >= 0);
+    {
+      if (e % 2 == 1) r = r * b;
+      b = b * b;
+      e = e / 2;
+    }
+  //@assert z0_assert(e == 0);
+  return r;
 }

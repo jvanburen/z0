@@ -18,9 +18,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-/* Z0 functions */
-void z0_assert(bool cond, const char where[]);
-
 /* C0 types */
 
 typedef int c0_int;

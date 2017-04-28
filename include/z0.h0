@@ -1,0 +1,8 @@
+/* Z0 assertions
+ * Needed because cc0 doesn't preserve the types of assertions
+ */
+
+bool z0_requires(bool cond);       // Indicates a precondition
+bool z0_ensures(bool cond);        // Indicates a postcondition
+bool z0_loop_invariant(bool cond); // Indicates a loop invariant
+bool z0_assert(bool cond);        // Indicates an assertion

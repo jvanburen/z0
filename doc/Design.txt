@@ -1,0 +1,34 @@
+Using an IR in SSA form is very nice because I can associate a single z3 variable with each IR register
+
+for LLVM:
+    I currently put it through mem2reg so i don't have to deal with allocas
+    That being said I could represent the stack as a function / array.
+        This could also work well for memory?
+    I know for arbitrary if statements I can use path conditions, but how should I handle non-DAG CFGs?
+    Similarly, interprocedural analysis? Do I just save a model somehow or should i look at more hoare-logic-y stuff?
+    Detecting which assertions are preconditions is annoying... I'll probably need a silly preprocessing pass for that... too bad cc0 isn't open-source.
+    C0 only has `if` and `while` so i can do loop detection and be assured the results are legit, but I dunno about
+
+Code organization:
+    TODO: I should factor out the solver state
+
+TODO:
+make a passthrough function for C0
+
+memory:
+    try alias analysis for memory to reduce load
+    need an "old" construct in general
+    way of framing memory
+
+interprocedural:
+    either use pre+postcondition (or the model output from the solver)
+
+loops:
+    look at paper!
+    could reconstruct natural loops using loop analysis pass
+    look at paths from loop inv to any other assertions?
+    you're proving LIs after statements and some phi functions
+    phi functions: stare at examples...?
+    For the stuff before the loop?
+    Basically handle phi functions.
+    probably just throw everything else out.

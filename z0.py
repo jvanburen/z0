@@ -19,17 +19,19 @@ CLANG = LLVM_BIN_PREFIX + "clang"
 OPT = LLVM_BIN_PREFIX + "opt"
 DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
-CC0_OPTIONS = ['-d', '--no-log', "--save-files","-c", "-###", "--standard=c0"]
+CC0_LIBOPTIONS = ['-L', 'include', '-L', 'lib']
+CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
 CLANG_OPTIONS = ["-O0",'-std=c99', '-fwrapv', '-w', '-g']
-OPT_BEFORE_PASSES = ['-debug', '-mem2reg', '-jump-threading']
+OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
 Z3_PASS_NAME = ["-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
-                "-load", "src/z0.so", "-z0"]
+                "-load", "lib/z0.so", "-z0"]
 
 def main(args):
   filename = args.files[-1]
   c_file = filename + ".c"
   h_file = filename + ".h"
-  sp.check_call([CC0] + CC0_OPTIONS + args.files, stderr=sp.DEVNULL)
+  # Compile C0 to C
+  sp.check_call([CC0] + CC0_LIBOPTIONS + CC0_OPTIONS + args.files)#, stderr=sp.DEVNULL)
   # Generate llvm bitcode with clang
   include_flags = ["-I"+path for path in CC0_INCLUDE_PATHS]
   bc_file = filename + ".bc"
@@ -38,11 +40,14 @@ def main(args):
   sp.check_call([CLANG, "-S", "-emit-llvm", c_file, '-o', bc_file] + include_flags + CLANG_OPTIONS)
   #analyze llvm code
   # TODO: don't forget load the analysis pass
-  sp.check_call([OPT, bc_file, '-o', opt_file] + OPT_BEFORE_PASSES + Z3_PASS_NAME)
+  sp.check_call([OPT, bc_file, '-o', opt_file] + OPT_BEFORE_PASSES)
   if args.debug_ll:
     ll_file = filename + ".ll"
     print("outputting ll file", ll_file)
     sp.check_call([DIS, opt_file, '-o', ll_file])
+  if args.debug_pass:
+      Z3_PASS_NAME.append('-debug')
+  sp.check_call([OPT, opt_file, '-o', os.path.devnull] + Z3_PASS_NAME)
   # os.remove(c_file)
   os.remove(h_file)
   os.remove(bc_file)
@@ -50,8 +55,10 @@ def main(args):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Static Analysis for C0')
-  parser.add_argument('-d', '--debug-ll', action='store_true', dest="debug_ll",
+  parser.add_argument('-l', '--debug-ll', action='store_true', dest="debug_ll",
                       help='save the human-readable ll file')
+  parser.add_argument('-d', '--debug-pass', action='store_true', dest="debug_pass",
+                      help='enable debug logging')
   parser.add_argument('files', help='The files to check', nargs='+')
   try:
     main(parser.parse_args())

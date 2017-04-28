@@ -1,5 +1,7 @@
+%:
+	$(MAKE) $@ -C src
 
 all:
-	$(MAKE) -C src
+	$(MAKE) all -C src
 
 .PHONY: all

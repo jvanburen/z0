@@ -6,11 +6,10 @@ void
 Z0::display_counterexample(void) {
     z3::model model = state.get_model();
     outs() << "=== Counterexample: ===\n";
-    DEBUG(dbgs() << "outputting model:\n");
+    DEBUG(dbgs() << "Outputting model:\n");
     DEBUG(dbgs() << to_string(model) << "\n");
     DEBUG(dbgs() << "From Assertions:\n");
     DEBUG(dbgs() << to_string(state.solver.assertions()) << "\n");
-
 
     std::map<z3::symbol, int> symb2num;
     int N = model.num_consts();
@@ -20,11 +19,11 @@ Z0::display_counterexample(void) {
         auto funcdecl = model.get_const_decl(i);
         z3::symbol name = funcdecl.name();
         z3::expr value = model.get_const_interp(funcdecl).simplify();
-        DEBUG(dbgs() << "symbol " << to_string(name) << " <= " << to_string(value) << "\n");
+        DEBUG(dbgs() << "Symbol " << to_string(name) << " <= " << to_string(value) << "\n");
         if (Z3_get_numeral_int64(state.cxt, value, &integer)) {
             symb2num[name] = integer;
         } else {
-            DEBUG(dbgs() << "cant get numeral from " << to_string(value) << "\n");
+            DEBUG(dbgs() << "Can't get numeral from " << to_string(value) << "\n");
         }
     }
     for (auto& pair : state.name2val) {
@@ -32,8 +31,6 @@ Z0::display_counterexample(void) {
         StringRef localname = pair.first;
         assert(localname.startswith("_c0v_"));
         outs() << localname.drop_front(5) << " = ";
-        // DILocalVariable const* lv = pair.second.first;
-        // outs() << "(line " << lv->getLine() << ") = ";
         Value const* val = pair.second.second->getValue();
         if (z3::symbol* symb = state.lookup_symbol(val)) {
             auto it = symb2num.find(*symb);
@@ -53,8 +50,9 @@ Z0::display_counterexample(void) {
 void
 Z0::analyze_z0_assert(CallInst const* ci) {
     Value const* cond = ci->getOperand(0);
-    DEBUG(dbgs() << "analyzing assertion");
+    DEBUG(dbgs() << "Analyzing assertion ");
     DEBUG(ci->dump());
+    DEBUG(dbgs() << "\n");
     if (is_precondition(ci)) {
         state.add(state.z3_repr(cond));
         switch (state.check()) {
@@ -111,29 +109,46 @@ Z0::check_div(z3::expr a, z3::expr b) {
     state.add(!fdiv);
 }
 
+
 /* Implement bitvector arithmetic*/
-#define BV_ARITH(state, operation, a, b) \
-    z3::to_expr((state).cxt, Z3_mk_bv##operation((state).cxt, (a), (b)))
+#define Z3_MK(name, a, b) state.z3_to_expr(Z3_mk_##name(state.cxt, a, b))
+
+z3::expr
+Z0::cast_expr(CastInst const* icast) {
+    z3::expr operand = state.z3_repr(icast->getOperand(0));
+    if (!icast->isIntegerCast()) throw StopZ0("Unknown non-integer cast");
+    unsigned srcTypeWidth = cast<IntegerType>(icast->getSrcTy())->getBitWidth();
+    unsigned dstTypeWidth = cast<IntegerType>(icast->getDestTy())->getBitWidth();
+    int change = dstTypeWidth - srcTypeWidth;
+    switch (icast->getOpcode()) {
+        case Instruction::ZExt: return Z3_MK(zero_ext, change, operand);
+        case Instruction::SExt: return Z3_MK(sign_ext, change, operand);
+        case Instruction::Trunc: return operand.extract(0, dstTypeWidth-1);
+        default:
+            DEBUG(icast->dump());
+            throw StopZ0("Unknown cast encountered");
+    }
+}
 
 z3::expr
 Z0::binop_expr(unsigned opcode, z3::expr a, z3::expr b) {
     switch (opcode) {
-        case Instruction::Add:  return BV_ARITH(state, add, a, b);
-        case Instruction::Sub:  return BV_ARITH(state, sub, a, b);
-        case Instruction::Mul:  return BV_ARITH(state, mul, a, b);
-        case Instruction::And:  return BV_ARITH(state, and, a, b);
-        case Instruction::Xor:  return BV_ARITH(state, xor, a, b);
-        case Instruction::Or:   return BV_ARITH(state, or, a, b);
-        case Instruction::Shl:  return BV_ARITH(state, shl, a, b);
-        case Instruction::SRem: return BV_ARITH(state, srem, a, b);
-        case Instruction::AShr: return BV_ARITH(state, ashr, a, b);
-        case Instruction::SDiv: return BV_ARITH(state, sdiv, a, b);
+        case Instruction::Add:  return Z3_MK(bvadd, a, b);
+        case Instruction::Sub:  return Z3_MK(bvsub, a, b);
+        case Instruction::Mul:  return Z3_MK(bvmul, a, b);
+        case Instruction::And:  return Z3_MK(bvand, a, b);
+        case Instruction::Xor:  return Z3_MK(bvxor, a, b);
+        case Instruction::Or:   return Z3_MK(bvor, a, b);
+        case Instruction::Shl:  return Z3_MK(bvshl, a, b);
+        case Instruction::SRem: return Z3_MK(bvsrem, a, b);
+        case Instruction::AShr: return Z3_MK(bvashr, a, b);
+        case Instruction::SDiv: return Z3_MK(bvsdiv, a, b);
         case Instruction::UDiv:
         case Instruction::LShr:
         case Instruction::URem:
-            throw StopZ0("unsigned ints in C0?");
+            throw StopZ0("Unsigned ints in C0?");
         default:
-            throw StopZ0 ("unknown binop encountered");
+            throw StopZ0 ("Unknown binop encountered");
     }
 }
 
@@ -142,17 +157,17 @@ Z0::cmp_expr(llvm::CmpInst::Predicate pred, z3::expr a, z3::expr b) {
     switch (pred) {
         case llvm::CmpInst::ICMP_EQ:  return a == b;
         case llvm::CmpInst::ICMP_NE:  return a != b;
-        case llvm::CmpInst::ICMP_SGT: return BV_ARITH(state, sgt, a, b);
-        case llvm::CmpInst::ICMP_SGE: return BV_ARITH(state, sge, a, b);
-        case llvm::CmpInst::ICMP_SLT: return BV_ARITH(state, slt, a, b);
-        case llvm::CmpInst::ICMP_SLE: return BV_ARITH(state, sle, a, b);
+        case llvm::CmpInst::ICMP_SGT: return Z3_MK(bvsgt, a, b);
+        case llvm::CmpInst::ICMP_SGE: return Z3_MK(bvsge, a, b);
+        case llvm::CmpInst::ICMP_SLT: return Z3_MK(bvslt, a, b);
+        case llvm::CmpInst::ICMP_SLE: return Z3_MK(bvsle, a, b);
         case llvm::CmpInst::ICMP_UGT:
         case llvm::CmpInst::ICMP_UGE:
         case llvm::CmpInst::ICMP_ULT:
         case llvm::CmpInst::ICMP_ULE:
-            throw StopZ0("unsigned ints in C0?");
+            throw StopZ0("Unsigned ints in C0?");
         default:
-            throw StopZ0("unknown compare operation?");
+            throw StopZ0("Unknown compare operation?");
     }
 }
 #undef BV_ARITH

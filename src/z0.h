@@ -147,7 +147,7 @@ private: /* Z0-specific logic */
             auto const* lv_wrap = llvm::cast<MetadataAsValue>(ci->getOperand(2));
             auto const* val = llvm::cast<ValueAsMetadata>(val_wrap->getMetadata());
             auto const* lv = llvm::cast<DILocalVariable>(lv_wrap->getMetadata());
-            DEBUG(dbgs() << "got assignment to value:\n   ");
+            DEBUG(dbgs() << "Got assignment to value:\n   ");
             DEBUG(lv->dump());
             DEBUG(dbgs() <<  " = ");
             DEBUG(val->dump());
@@ -192,35 +192,12 @@ private: /* Z0-specific logic */
         }
     }
     void analyze_unaryop(Instruction const* instr) {
-        z3::expr operand = state.z3_repr(instr->getOperand(0));
         z3::expr instrconst = state.bv_constant(instr);
-        if (auto const* icmp = dyn_cast<CastInst>(instr)) {
-            if (!icmp->isIntegerCast()) throw StopZ0("unknown non-integer cast");
-            unsigned srcTypeWidth = cast<IntegerType>(icmp->getSrcTy())->getBitWidth();
-            unsigned dstTypeWidth = cast<IntegerType>(icmp->getDestTy())->getBitWidth();
-            int change = dstTypeWidth - srcTypeWidth;
-            switch (instr->getOpcode()) {
-                case Instruction::ZExt: {
-                    auto e = state.z3_to_expr(Z3_mk_zero_ext(state.cxt, change, operand));
-                    state.assert_eq(instrconst, e);
-                    break;
-                }
-                case Instruction::SExt: {
-                    auto e = state.z3_to_expr(Z3_mk_sign_ext(state.cxt, change, operand));
-                    state.assert_eq(instrconst, e);
-                    break;
-                }
-                case Instruction::Trunc: {
-                    state.assert_eq(instrconst, operand.extract(0, dstTypeWidth-1));
-                    break;
-                }
-                default:
-                    DEBUG(instr->dump());
-                    throw StopZ0("unknown cast encountered");
-            }
+        if (auto const* icast = dyn_cast<CastInst>(instr)) {
+            state.assert_eq(instrconst, cast_expr(icast));
         } else {
             DEBUG(instr->dump());
-            throw StopZ0("Unknown unary operator encountered");
+            throw StopZ0("Unknown unary operator");
         }
     }
 
@@ -229,6 +206,7 @@ private: /* Z0-specific logic */
      */
     z3::expr cmp_expr(llvm::CmpInst::Predicate pred, z3::expr a, z3::expr b);
     z3::expr binop_expr(unsigned opcode, z3::expr a, z3::expr b);
+    z3::expr cast_expr(CastInst const* icmp);
     void display_counterexample(void);
 };
 #undef DEBUG_TYPE

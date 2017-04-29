@@ -13,3 +13,4 @@ tests/*.ll
 tests/*.c
 tests/*.bc
 **.pch
+**.pyc

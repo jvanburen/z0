@@ -25,6 +25,7 @@ interprocedural:
 
 loops:
     look at paper!
+    Fortunately all C0 programs give reducible flow graphs
     could reconstruct natural loops using loop analysis pass
     look at paths from loop inv to any other assertions?
     you're proving LIs after statements and some phi functions
@@ -32,3 +33,14 @@ loops:
     For the stuff before the loop?
     Basically handle phi functions.
     probably just throw everything else out.
+
+
+For pre/postconditions:
+    Only care about postconditions that touch \result (for pure language)
+        \result is stored in _c0t__result
+    Preconditions can contain IFs (thanks to && and ||) but no loops. Still complicated
+        Use a free variable for each parameter and substitute to check
+        If we're not dealing with pointers then pure contract functions could be modeled as uninterpreted functions??
+
+useful opt passes:
+    -deadargelim: Dead Argument Elimination

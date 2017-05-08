@@ -1,7 +1,7 @@
 #use <z0>
 int main()
 //@requires z0_requires(1 == 2);
-//@ensures z0_ensures(\result == 21212121);
+//@ensures z0_ensures(\result == 21212122);
 {
   int a;
   int b;

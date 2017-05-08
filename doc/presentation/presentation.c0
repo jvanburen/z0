@@ -1,0 +1,15 @@
+#use <z0>
+int main() {
+  return 1;
+}
+
+int test_function(int a, int b, int c)
+//@requires z0_requires(true);
+//@requires z0_requires(true);
+//@ensures z0_ensures(true);
+//@ensures z0_ensures(false);
+{
+
+  return 1;
+}
+

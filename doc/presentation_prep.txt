@@ -1,0 +1,61 @@
+Prepare a presentation of about 12 minutes in length.
+
+Describe the problem you are solving
+
+  newbies write buggos
+  TAs need to grade faster
+
+  122 has heavy focus on manually writing assertions
+  "We should have better static analysis for C0, [it] would be instructive"
+    -former 122 TA
+
+and why it is important;
+
+  TA social lives matter
+  There are hundreds of students in 122
+  Test cases are heuristic
+
+give any background not already provided in the class;
+
+  Z3 has built-in algebras for bitvectors
+
+  LLVM is a compiler IR
+
+  cc0 is the canonical C0 compiler
+
+  C0 is language used for 122
+
+explain how you solved the problem
+
+  compute weakest preconditions from function postconditions
+
+  negate assertions, attempt to find counterexample to assertions
+
+  Control flow not implemented!
+
+  Could do if statements via path conditions, but loops are harder
+
+and give a short demo. (3-4 mins)
+
+  [include demo here]
+
+Include a retrospective criticizing your work and
+
+  High effort, is the return that much better than test cases?
+
+  using and freeing memory is a big deal, This kind of static analysis doesn't handle memory very well at all.
+
+  SMT solvers can't prove inductive facts.
+
+  A lot of other tooling is important in the learning process
+
+  Finding bugs manually is part of the experience
+
+  All my final projects are front-loaded.
+
+considering future extensions that could be done.
+  control flow. obviously.
+    Paper involves
+  context-sensitivity.
+  automatic loop-invariant detection.
+

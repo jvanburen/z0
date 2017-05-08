@@ -10,7 +10,8 @@ import argparse
 # Make sure path prefixes end in "/"
 CC0_BIN_PREFIX = "/home/user/cc0/bin/"
 LLVM_BIN_PREFIX = "/home/user/llvm-3.9.1.install/bin/"
-CC0_INCLUDE_PATHS = ["./z0lib", "/home/user/cc0/runtime/"]
+Z0_PREFIX = "/home/user/project/"
+CC0_INCLUDE_PATHS = [Z0_PREFIX + "z0lib", "/home/user/cc0/runtime/"]
 
 # Derived config (shouldn't need to change)
 CC0 = CC0_BIN_PREFIX + "cc0.bin"
@@ -18,7 +19,7 @@ CLANG = LLVM_BIN_PREFIX + "clang"
 OPT = LLVM_BIN_PREFIX + "opt"
 DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
-CC0_LIBOPTIONS = ['-L', 'include', '-L', 'lib']
+CC0_LIBOPTIONS = ['-L', Z0_PREFIX + 'include', '-L', Z0_PREFIX + 'lib']
 CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
 OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
 CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
@@ -27,7 +28,7 @@ CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
     '-D', 'IGNORE_CC0_ASSERT']
 Z3_PASS_NAME = [
     "-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
-    "-load", "lib/z0.so", "-z0"]
+    "-load", Z0_PREFIX + "lib/z0.so", "-z0"]
 EPILOG = """Jacob Van Buren (jvanbure)
 17-355 Program Analysis Final Project Spring 2017"""
 

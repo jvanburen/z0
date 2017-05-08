@@ -22,7 +22,7 @@ CC0_LIBOPTIONS = ['-L', 'include', '-L', 'lib']
 CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
 OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
 CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
-    '-S', '-emit-llvm'
+    '-S', '-emit-llvm',
     '-O0', '-std=c99', '-fwrapv', '-w', '-g',
     '-D', 'IGNORE_CC0_ASSERT']
 Z3_PASS_NAME = [

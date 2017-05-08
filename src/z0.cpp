@@ -54,7 +54,7 @@ Z0::analyze_z0_assert(CallInst const* ci) {
         DEBUG(dbgs() << "Analyzing precondition ");
         DEBUG(ci->dump());
         DEBUG(dbgs() << "\n");
-        state.assert_eq(state.z3_repr(cond), false_expr);
+        state.assert_eq(state.z3_repr(cond), true_expr);
         switch (state.check()) {
             case z3::sat:
                 DEBUG(dbgs() << "Precondition ok\n"); break;

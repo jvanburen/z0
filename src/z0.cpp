@@ -30,7 +30,7 @@ Z0::display_counterexample(void) {
         // DEBUG(dbgs() << "looking at variable " << pair.first << "\n");
         StringRef localname = pair.first;
         assert(localname.startswith("_c0v_"));
-        outs() << localname.drop_front(5) << " = ";
+        outs() << "int " << localname.drop_front(5) << " = ";
         Value const* val = pair.second.second->getValue();
         if (z3::symbol* symb = state.lookup_symbol(val)) {
             auto it = symb2num.find(*symb);

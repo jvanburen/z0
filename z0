@@ -1,2 +1,1 @@
-#!/bin/sh
-exec bin/z0.py $@
+bin/z0.py

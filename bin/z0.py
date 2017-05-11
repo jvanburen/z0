@@ -11,7 +11,7 @@ import argparse
 CC0_BIN_PREFIX = "/home/user/cc0/bin/"
 LLVM_BIN_PREFIX = "/home/user/llvm-3.9.1.install/bin/"
 Z0_PREFIX = "/home/user/project/"
-CC0_INCLUDE_PATHS = [Z0_PREFIX + "z0lib", "/home/user/cc0/runtime/"]
+CC0_INCLUDE_PATHS = [Z0_PREFIX + "include/z0", "/home/user/cc0/runtime/"]
 
 # Derived config (shouldn't need to change)
 CC0 = CC0_BIN_PREFIX + "cc0.bin"

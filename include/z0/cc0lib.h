@@ -19,7 +19,7 @@
 #define cc0_array(ty) c0_array
 
 // Allocate a value of type ty on the heap
-#define cc0_alloc(ty) ((ty*) c0_alloc(sizeof(ty)))
+#define cc0_alloc(ty) ((ty*) c0_alloc(#ty)
 
 // Dereferences a pointer
 #define cc0_deref(ty, p) (*(ty*)c0_deref((p)))
@@ -30,7 +30,7 @@
 // Generates an lvalue of type ty for the ith value in A
 #define cc0_array_sub(ty, A, i) (*(ty*)c0_array_sub(A, i, sizeof(ty)))
 
-#ifdef IGNORE_CC0_ASSERT
+#ifdef COMPILING_FOR_Z0
 #define cc0_assert(cond, reason) ((void) 0)
 #else
 #define cc0_assert(cond, reason) c0_assert(cond, reason)

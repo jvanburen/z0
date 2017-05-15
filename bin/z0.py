@@ -24,8 +24,8 @@ CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
 OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading', '-loops']
 CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
     '-S', '-emit-llvm',
-    '-O0', '-std=c99', '-fwrapv', '-w', '-g', '-fdebug-macro',
-    '-D', 'IGNORE_CC0_ASSERT']
+    '-O0', '-std=c99', '-fwrapv', '-w', '-g',
+    '-D', 'COMPILING_FOR_Z0']
 Z0_PASS_LOAD = [
     "-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
     "-load", Z0_PREFIX + "lib/z0.so"]

@@ -21,14 +21,15 @@ DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
 CC0_LIBOPTIONS = ['-L', Z0_PREFIX + 'include', '-L', Z0_PREFIX + 'lib']
 CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
-OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading']
+OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading', '-loops']
 CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
     '-S', '-emit-llvm',
-    '-O0', '-std=c99', '-fwrapv', '-w', '-g',
+    '-O0', '-std=c99', '-fwrapv', '-w', '-g', '-fdebug-macro',
     '-D', 'IGNORE_CC0_ASSERT']
-Z3_PASS_NAME = [
+Z0_PASS_LOAD = [
     "-load", "/home/user/z3-4.5.0-x64-debian-8.5/bin/libz3.so",
-    "-load", Z0_PREFIX + "lib/z0.so", "-z0"]
+    "-load", Z0_PREFIX + "lib/z0.so"]
+Z0_PASS_NAME = ["-z0"]
 EPILOG = """Jacob Van Buren (jvanbure)
 17-355 Program Analysis Final Project Spring 2017"""
 
@@ -41,7 +42,7 @@ def main(args):
     opt_file = filename + ".opt.bc"
     ll_file = filename + ".ll"
     if args.debug_pass:
-        Z3_PASS_NAME.append('-debug')
+        Z0_PASS_LOAD.append('-debug')
 
     # Compile C0 to C
     cc0_options = CC0_LIBOPTIONS + CC0_OPTIONS + args.files
@@ -58,7 +59,7 @@ def main(args):
     else:
         os.remove(c_file)
 
-    sp.check_call([OPT, opt_file, '-o', os.path.devnull] + Z3_PASS_NAME)
+    sp.check_call([OPT, opt_file, '-o', os.path.devnull] + Z0_PASS_LOAD + OPT_BEFORE_PASSES + Z0_PASS_NAME)
 
     os.remove(h_file)
     os.remove(bc_file)

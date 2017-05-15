@@ -2,7 +2,7 @@
 /* Z0 assertions
  * Needed because cc0 doesn't preserve the types of assertions
  */
-#include "../z0lib/c0runtime.h"
+#include "../include/z0/c0runtime.h"
 
 #define Z0_IDENTITY(name) bool z0_##name(bool cond) { return cond; };
 

@@ -69,6 +69,9 @@ public:
         return (it == val2symbol.end()) ? nullptr : &(it->second);
     }
 
+    z3::symbol fresh_symbol(void) {
+        return cxt.int_symbol(++count);
+    }
 
     /* Requires v to have an integer llvm type */
     z3::expr bv_constant(Value const* v) {

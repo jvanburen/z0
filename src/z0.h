@@ -1,5 +1,6 @@
 
 #include "llvm/Pass.h"
+#include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/CallGraph.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
@@ -47,6 +48,7 @@ public:
 
     void getAnalysisUsage(AnalysisUsage &AU) const override {
         AU.setPreservesAll(); /* Doesn't modify the program, so preserve all analyses */
+        AU.addRequired<LoopInfoWrapperPass>();
     }
     bool doInitialization(Module &M) override {
         DEBUG(dbgs() << "Z0 pass initializing...\n");
@@ -61,10 +63,14 @@ public:
 
     bool runOnModule(Module &M) override {
         DEBUG(dbgs() << "Z0 pass running...\n");
+
         for (Function &F : M) {
             try {
                 if (F.getName().startswith("_c0_")) {
                     outs() << "Analyzing function " << F.getName().drop_front(4) << "...\n";
+                    outs() << "looking for loop info for " << F.getName() << "\n";
+                    LoopInfoWrapperPass &info = getAnalysis<LoopInfoWrapperPass>(F);
+                    outs() << "got loop pass info\n";
                     for (BasicBlock &BB : F) { // there should only be one for now
                         analyze_basicblock(&BB);
                     }

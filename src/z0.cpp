@@ -1,4 +1,5 @@
 #include "z0.h"
+#include "precondition_analysis.h"
 
 #define DEBUG_TYPE "Z0"
 

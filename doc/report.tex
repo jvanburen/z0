@@ -1,10 +1,13 @@
 \documentclass[12pt]{article}
 \usepackage[backend=biber]{biblatex}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
 
 \title{\texttt{Z0}: Static Analysis for the C0 language\\
 {\normalsize 17-355 Final Project}}
 \author{Jacob Van Buren}
-\date{Monday May 15, 2017}
+\date{Monday May 15, 2017 11:59pm}
 \addbibresource{report.bib}
 \begin{document}
 \maketitle
@@ -14,36 +17,64 @@ In addition to the stripped-down version of C, C0 supports a number of ``contrac
 
 The current C0 compiler \texttt{cc0} uses the \texttt{-d} flag to enable runtime checking of these assertions. This runtime checking allows programmers to express any conditions they want about their code and dynamicaly check it, such as verifying a function computes the same thing as a given specification function. However it also means the programmer is required to write test cases sufficient to convice him or her that the contracts hold in all cases. Additionally, runtime checking of the assertions can lead to significant overheads when executing code. Furthermore, a failed assertion does not always indicate why an invariant failed to hold, or what parts of the program were relevant.
 
-
-\section{Current goals}
-Verify purely numerical C0 code where functions and loops are fully specified by preconditions, postconditions, and loop invariants.
+\section{Current Goals}
+Verify purely numerical (no heap-allocated memory) C0 code where functions and loops are fully specified by preconditions, postconditions, and loop invariants.
 The objective of this project is to produce a complete bug-finding analysis, not necessarily a sound one.
 
 \subsection{Achievements}
-The current code is able to verify purely numerical code that contains branches in the body of the code as well as short-circuited contracts.
+The current code is able to verify purely numerical code that contains branches in the body of the code as well as short-circuited contracts (ones using the \texttt{\&\&} and \texttt{||} operators)
 
-\section{Proposed Architecture}
+\subsection{Shortcomings}
+The current program is not able to understand function calls or memory, and loops may not terminate, or in some cases crash the program.
+
+\section{Running the program}
+There is a (rather large unfortunately) VMware VM image at \url{<dropbox link here>}. It has a user \texttt{user} with password \texttt{user}. It also runs sshd with public-key authentication only. I've cleared \verb|authorized_keys| so it should be reasonably safe to give it network access.
+
+Inside the VM, zsh is the default shell, and \texttt{z0} is in the path by default. \texttt{z0 -h} gives the options. The \verb|~/project/tests| folder provides a few test cases for which it works, and at least one for which it doesn't.
+
+To re-build the project, simply use the makefile included in \verb|~/project/|.
+
+To use the project on a different linux machine, install llvm 3.9.1 with debug information enabled, install the z3 theorem prover, and download the latest release of cc0. Then, modify \texttt{bin/z0.py} to point to the correct paths.
+
+\section{Architecture}
 We follow Barnett \cite{Barnett:2005:WUP:1108768.1108813} in transforming the program to a form amenible to symbolic static analysis.
 
-First, we cut loops using the method outlined in the paper. C0 contains only structured control flow, so we may assume that To deal with loop invariants, we detect user-annotated symbolic invariants. Then we add loop-invariant code to our loop invariants, and replace phi functions in the loop header with \texttt{havoc} statements, where they are followed by the loop invariant assertions.
+\paragraph{Proposed Loop Handling}
+First, we cut loops using the method outlined in the paper. C0 contains only simple structured control flow, so we may assume that our control flow graph is already reducible.
+To deal with loop invariants, we detect user-annotated symbolic invariants. Then we add loop-invariant code to our loop invariants, and replace phi functions in the loop header with \texttt{havoc} statements, where they are followed by the loop invariant assertions. We copy loop invariants to a preheader, to ensure that we assume and verify them before the loop is executed. It may be possible to infer stronger loop invariants using the SMT solver, that would produce fewer false positives.
 
-We copy loop invariants to a preheader, to ensure that we assume and verify them before the loop is executed.
+\paragraph{Proposed Function Call Handling}
+First, we analyze each function and derive its preconditions.
+It may be necessary to encode preconditions as a set of assertion vectors, since preconditions may contain structured control flow (due to the \texttt{\&\&} and \texttt{||} short-circuit operators). We note that for C0 without memory, short-circuiting is still necessary, as division by zero can still be caught this way. It's unclear how to deal with the issue of preconditions or postconditions causing undefined behavior. Currently compiling with CC0, dereferencing a null pointer in a precondition results in undefined behavior, contrary to 15-122's claim that C0 has no undefined behavior.
 
-After cutting loops, we analyze the loop-free program
-\subsection{Contracts}
-To deal with preconditions and postconditions, we must deal with DAGs as preconditions, since \texttt{\&\&} and \texttt{||} statements are compiled into control flow. Thus, when analyzing preconditions, we take into account all possible paths from the start of the function to each precondition via brute-force analysis + path constraints.
+\paragraph{Currently Implemented}
+Assuming the program is now loop-free, and has no function calls, we analyze the program by brute-force searching through all possible paths. When we reach a precondition, we assume it holds. For each assignment statement, we add an assertion to the kernel of the SMT solver. At conditional branches, we explore both branches, assuming the condition to be true or false along the respective branch. Upon reaching an assertion that is not a precondition, we first check to ensure the assertion is reachable with the current assumptions about he program state. Assuming it is, we attempt to find a counterexample to the assertion. If a counterexample is found, we stop analyzing the current function and report the counterexample. For the special implicit case of integer division, the solver reports any possible division errors, but attempts to continue regardless, under the assumption that it's more useful to continue, as long as we report it, whereas an explicitly annotated assertion failing is more of a concern.
 
-\subsection{What Would I Do Differently?}
-% I would precompute the vector of weakest precondition assumptions for each block symbolically by replacing phi functions with free variables and computing each basic block  I would expect this to speed up the traversal by allowing verification conditions to be assumed over paths to simplify variables significantly, as well as
 
-\section{Organization}
+% \subsection{Contracts}
+% To deal with preconditions and postconditions, we must deal with DAGs as preconditions, since \texttt{\&\&} and \texttt{||} statements are compiled into control flow. Thus, when analyzing preconditions, we take into account all possible paths from the start of the function to each precondition via brute-force analysis + path constraints.
 
-\section{Stretch goals / future work}
-a model checker for C0 that would verify assertions for general C0 programs
-More helpful debug output.
+\subsection{What Would I Do Differently Next Time?}
+\begin{itemize}
+  \item Keeping track of assignment statements in a different way would be useful. I would like to be able to give a trace of variable assignments rather than just the last values of them.
+  \item It would be possible to precompute parts of basic blocks into assertion vectors, instead of adding them each time we iterate through it. It's possible for programs with many branches that this could speed up the solver, although there would also be many cases for which the solving time dominates anyway.
+\end{itemize}
+
+\section{Program Organization}
+For Z0 to successfully analyze a program, the relevant contracts must be calls to the functions
+\verb|z0_requires| for \verb|@requires| annotations, \verb|z0_loop_invariant| for \verb|@loop_invariant| annotations, and so on.
+
+The top level of the file structure contains the makefile, which builds the program.
+The \texttt{doc} folder contains the written and presenation portions of the assignment.
+The \texttt{bin} folder contains the source for the top level of Z0, which is a python file.
+the \texttt{src} contains the source to the \texttt{z0lib} shared object library, which is given to cc0, to allow it to compile the programs that include the Z0 annotations. More importantly, it contains the C++ source for the LLVM pass that analyzes the output of cc0. For better or for worse, 100\% of the code in both \texttt{bin} and \texttt{src} is written by me. There's a decent amount of dead code in the git repo, as I was unsure whether I would be able to get loops or function calls verified.
+
+\section{Stretch goals / Future Work}
+A model checker for C0 could be useful, however it seems like a sound analysis might be slightly more useful than a complete analysis for C0, given that it's not used to write critical code, simply to teach beginners about programmers.
+C0 has no mutable implicit global state, however it does have heap-allocated memory. Modelling it without requiring laborious programmer annotations would be an interesting research Project.
 
 \subsection{Obstacles}
-CC0 is closed source. Can't get good debug info from it. It's also much harder than it should be to get out the preconditions / postconditions from the basic blocks because of the way \texttt{\&\&} and \texttt{||} are compiled into C code.
+CC0 is closed source. As a result, it's nearly impossible to get decent debug info from it. In order to make Z0 into a tool with any hope of being used by beginners, it's critical that it gives extremely explicit output that's easily mapped back to what the programmer wrote. A program such as clang's \href{https://clang-analyzer.llvm.org}{\texttt{scan-build}} has a very usable front end, something similar to it might be necessary for wider adoption.
 
 \printbibliography
 \end{document}

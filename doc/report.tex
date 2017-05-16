@@ -1,0 +1,49 @@
+\documentclass[12pt]{article}
+\usepackage[backend=biber]{biblatex}
+
+\title{\texttt{Z0}: Static Analysis for the C0 language\\
+{\normalsize 17-355 Final Project}}
+\author{Jacob Van Buren}
+\date{Monday May 15, 2017}
+\addbibresource{report.bib}
+\begin{document}
+\maketitle
+\section{Background}
+C0 is a small, safety-oriented, C-like language developed at Carnegie Mellon. It was designed for use in teaching beginners to reason about imperative programs without dealing  with the intricacies of undefined/implemention-defined behavior and the complex semantics of some C statements.
+In addition to the stripped-down version of C, C0 supports a number of ``contracts,'' or assertions, for codifying program invariants in the source instead of in English.
+
+The current C0 compiler \texttt{cc0} uses the \texttt{-d} flag to enable runtime checking of these assertions. This runtime checking allows programmers to express any conditions they want about their code and dynamicaly check it, such as verifying a function computes the same thing as a given specification function. However it also means the programmer is required to write test cases sufficient to convice him or her that the contracts hold in all cases. Additionally, runtime checking of the assertions can lead to significant overheads when executing code. Furthermore, a failed assertion does not always indicate why an invariant failed to hold, or what parts of the program were relevant.
+
+
+\section{Current goals}
+Verify purely numerical C0 code where functions and loops are fully specified by preconditions, postconditions, and loop invariants.
+The objective of this project is to produce a complete bug-finding analysis, not necessarily a sound one.
+
+\subsection{Achievements}
+The current code is able to verify purely numerical code that contains branches in the body of the code as well as short-circuited contracts.
+
+\section{Proposed Architecture}
+We follow Barnett \cite{Barnett:2005:WUP:1108768.1108813} in transforming the program to a form amenible to symbolic static analysis.
+
+First, we cut loops using the method outlined in the paper. C0 contains only structured control flow, so we may assume that To deal with loop invariants, we detect user-annotated symbolic invariants. Then we add loop-invariant code to our loop invariants, and replace phi functions in the loop header with \texttt{havoc} statements, where they are followed by the loop invariant assertions.
+
+We copy loop invariants to a preheader, to ensure that we assume and verify them before the loop is executed.
+
+After cutting loops, we analyze the loop-free program
+\subsection{Contracts}
+To deal with preconditions and postconditions, we must deal with DAGs as preconditions, since \texttt{\&\&} and \texttt{||} statements are compiled into control flow. Thus, when analyzing preconditions, we take into account all possible paths from the start of the function to each precondition via brute-force analysis + path constraints.
+
+\subsection{What Would I Do Differently?}
+% I would precompute the vector of weakest precondition assumptions for each block symbolically by replacing phi functions with free variables and computing each basic block  I would expect this to speed up the traversal by allowing verification conditions to be assumed over paths to simplify variables significantly, as well as
+
+\section{Organization}
+
+\section{Stretch goals / future work}
+a model checker for C0 that would verify assertions for general C0 programs
+More helpful debug output.
+
+\subsection{Obstacles}
+CC0 is closed source. Can't get good debug info from it. It's also much harder than it should be to get out the preconditions / postconditions from the basic blocks because of the way \texttt{\&\&} and \texttt{||} are compiled into C code.
+
+\printbibliography
+\end{document}

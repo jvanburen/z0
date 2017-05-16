@@ -21,7 +21,7 @@ DIS = LLVM_BIN_PREFIX + "llvm-dis"
 
 CC0_LIBOPTIONS = ['-L', Z0_PREFIX + 'include', '-L', Z0_PREFIX + 'lib']
 CC0_OPTIONS = ['-d', '--no-log', "--save-files", "--standard=c0"]
-OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading', '-loops']
+OPT_BEFORE_PASSES = ['-mem2reg', '-jump-threading', '-loops', '-loop-simplify']
 CLANG_OPTIONS = ["-I" + path for path in CC0_INCLUDE_PATHS] + [
     '-S', '-emit-llvm',
     '-O0', '-std=c99', '-fwrapv', '-w', '-g',

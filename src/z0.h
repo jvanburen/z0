@@ -65,23 +65,27 @@ public:
         DEBUG(dbgs() << "Z0 pass running...\n");
 
         for (Function &F : M) {
-            try {
-                if (F.getName().startswith("_c0_")) {
-                    outs() << "Analyzing function " << F.getName().drop_front(4) << "...\n";
-                    outs() << "looking for loop info for " << F.getName() << "\n";
-                    LoopInfoWrapperPass &info = getAnalysis<LoopInfoWrapperPass>(F);
-                    outs() << "got loop pass info\n";
-                    for (BasicBlock &BB : F) { // there should only be one for now
-                        analyze_basicblock(&BB);
+            if (F.getName().startswith("_c0_")) {
+                state.reset();
+                outs() << "Analyzing function " << F.getName().drop_front(4) << "...\n";
+                LoopInfoWrapperPass &info = getAnalysis<LoopInfoWrapperPass>(F);
+                cut_loops(F, info.getLoopInfo());
+                BasicBlock const& entry = F.getEntryBlock();
+                try {
+                    bool doesReturn = analyze_basicblock(entry, nullptr);
+                    if (!doesReturn) {
+                        outs() << "Warning: function never returns. Perhaps an infinite loop or unsatisfiable precondition?\n";
                     }
                     outs() << "OK!\n";
+                } catch (StopZ0 e) {
+                    DEBUG(dbgs() << "Z0 stopped cleanly via exception.\n");
+                    errs() << "Z0 Stopped: " << e.why << "\n";
+                    DEBUG(outs() << "Along path: ");
+                    DEBUG(state.show_path(&entry));
+                } catch (z3::exception e) {
+                    errs() << "Internal Error! z3 raised an exception:\n";
+                    errs() << e.msg() << "\n";
                 }
-            } catch (StopZ0 e) {
-                DEBUG(dbgs() << "Z0 stopped cleanly via exception.\n");
-                errs() << "Z0 Stopped: " << e.why << "\n";
-            } catch (z3::exception e) {
-                errs() << "Internal Error! z3 raised an exception:\n";
-                errs() << e.msg() << "\n";
             }
         }
         DEBUG(dbgs() << "Z0 pass finished.\n");
@@ -96,23 +100,109 @@ private: /* Z0-specific logic */
         return ss.str();
     }
 
-    void analyze_basicblock(BasicBlock const* BB) {
-        DEBUG(dbgs() << "Printing Basic Block " << BB->getName() << ":\n");
-        Instruction const* term = BB->getTerminator();
-        for (auto it = BB->begin(); &*it != term; ++it) {
-            Instruction const* instr = &*it;
-            DEBUG(instr->dump());
+    void cut_loops(Function &F, LoopInfo &li){
+        // loop transformation code would go here
+    }
+
+    bool is_reachable(void) {
+        switch (state.solver.check()) {
+            case z3::unknown:
+                DEBUG(errs() << "***Path could not be confirmed reachable, assuming it is***\n");
+            case z3::sat:
+                return true;
+            case z3::unsat:
+                DEBUG(dbgs() << "is_reachable is false:\n");
+                DEBUG(dbgs() << to_string(state.solver.assertions()));
+                DEBUG(dbgs() << "\nalong path:\n");
+                DEBUG(state.show_path(nullptr));
+                return false;
         }
-        DEBUG(dbgs() << "Analyzing Basic Block " << BB->getName() << ":\n");
-        for (auto it = BB->begin(); &*it != term; ++it) {
-            analyze_instruction(&*it);
+        __builtin_unreachable();
+    }
+
+    bool analyze_basicblock(BasicBlock const& BB, BasicBlock const* from) {
+        DEBUG(dbgs() << "Analyzing Basic Block " << BB.getName());
+        if (from == nullptr) {
+            DEBUG(dbgs() << " (entry block):\n");
+        } else {
+            DEBUG(dbgs() << " (from " << from->getName() << "):\n");
         }
+        // DEBUG(BB->dump());
+        TerminatorInst const* term = BB.getTerminator();
+        BasicBlock::const_iterator it = BB.begin();
+        if (from != nullptr) {
+            auto nonPhi = BB.getFirstNonPHI();
+            while (&*it != nonPhi) {
+                PHINode const* phi = cast<PHINode>(&*it);
+                Value const* phiVal = phi->getIncomingValueForBlock(from);
+                state.assert_eq(state.z3_repr(phi), state.z3_repr(phiVal));
+                ++it;
+            }
+        }
+        try {
+            while (&*it != term) {
+                analyze_instruction(&*it);
+                ++it;
+            }
+        } catch (UnreachablePath _) {
+            return false;
+        }
+        bool doesReturn = false;
+
+        if (term->getOpcode() == Instruction::Ret) {
+            doesReturn = is_reachable();
+        } else if (BranchInst const* br = dyn_cast<BranchInst>(term)) {
+            // The true branch is the first successor
+
+            if (br->isConditional()) {
+                Value const* cond = br->getCondition();
+                z3::expr cond_expr = state.z3_repr(cond);
+                {
+                    BasicBlock const* next = br->getSuccessor(0);
+                    state.push(next);
+                    state.assert_eq(cond_expr, true_expr);
+                    if (is_reachable()) {
+                        try { doesReturn |= analyze_basicblock(*next, &BB);
+                        } catch (UnreachablePath _){}
+                    }
+                    state.pop();
+                }{
+                    BasicBlock const* next = br->getSuccessor(1);
+                    state.push(next);
+                    state.assert_eq(cond_expr, false_expr);
+                    if (is_reachable()) {
+                        try { doesReturn |= analyze_basicblock(*next, &BB);
+                        } catch (UnreachablePath u){}
+                    }
+                    state.pop();
+                }
+            } else { // unconditional branch
+                BasicBlock const* next = br->getSuccessor(0);
+                state.push(next);
+                try {
+                    doesReturn |= analyze_basicblock(*next, &BB);
+                } catch (UnreachablePath u){}
+                state.pop();
+            }
+        } else if (isa<UnreachableInst>(term)) {
+            // If LLVM can detect this is impossible with
+            // its few analyses, then it's probably pretty simple/intended
+            DEBUG(dbgs() << "Assuming trivially unreachable path is intended\n");
+            doesReturn = true;
+        } else {
+            DEBUG(term->dump());
+            throw StopZ0("Unknown basic block terminator");
+        }
+        return doesReturn;
     }
 
     void analyze_instruction(Instruction const* instr) {
         if (CallInst const* ci = dyn_cast<CallInst>(instr)) {
             DEBUG(instr->dump());
             analyze_call(ci);
+        } else if (isa<PHINode>(instr)) {
+            DEBUG(instr->dump());
+            assert(false && "PHI nodes shouldn't appear in analyze_instruction");
         } else if (instr->getNumOperands() == 2) {
             analyze_binop(instr);
         } else if (instr->getNumOperands() == 1) {
@@ -153,16 +243,11 @@ private: /* Z0-specific logic */
             auto const* lv_wrap = llvm::cast<MetadataAsValue>(ci->getOperand(2));
             auto const* val = llvm::cast<ValueAsMetadata>(val_wrap->getMetadata());
             auto const* lv = llvm::cast<DILocalVariable>(lv_wrap->getMetadata());
-            DEBUG(dbgs() << "Got assignment to value:\n   ");
-            DEBUG(lv->dump());
-            DEBUG(dbgs() <<  " = ");
-            DEBUG(val->dump());
-            DEBUG(dbgs() <<  "\n");
-            if (lv->getName().startswith("_c0v_")) {
+            DEBUG(dbgs() << "Got assignment to value: " << lv->getName() << " = " << *val << "\n");
+            if (lv->getName().startswith("_c0v_") || lv->getName() == "_c0t__result") {
                 state.update_ident(lv, val);
             }
-            // state.update_ident(lv->getName(), )
-        }else if (name == "llvm.dbg.declare") {
+        } else if (name == "llvm.dbg.declare") {
             DEBUG(dbgs() << "(Ignoring variable declaration.)\n");
             /* ignore */
         } else {

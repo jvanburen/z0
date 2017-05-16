@@ -1,15 +1,18 @@
 #pragma once
 
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "z3++.h"
 #include <string>
 #include <unordered_map>
 #include <map>
+#include <vector>
 #include <tuple>
 #include <cstdint>
 
@@ -28,6 +31,9 @@ struct StopZ0 final {
     }
     explicit StopZ0(std::string const& why) :StopZ0(why.c_str()) {}
 };
+
+struct UnreachablePath final {};
+
 enum BitWidth { I1=1u, I32=32u };
 /* Z0 solver state */
 class Z0State final {
@@ -38,6 +44,8 @@ class Z0State final {
 public:
     using LocalInfo = std::pair<DILocalVariable const*, ValueAsMetadata const*>;
     std::map<StringRef, LocalInfo> name2val;
+    std::vector<std::map<StringRef, LocalInfo>> n2vstack;
+    std::vector<BasicBlock const*> bbstack;
 
     z3::context cxt;
     z3::sort z0_int_sort = cxt.bv_sort(32);
@@ -84,7 +92,9 @@ public:
     /* gets the z3 representation of an llvm value*/
     z3::expr z3_repr(Value const* val) {
         if (ConstantInt const* n = dyn_cast<ConstantInt>(val)) {
-            if (val->getType()->isIntegerTy(1) || val->getType()->isIntegerTy(32)) {
+            if (val->getType()->isIntegerTy(1)
+            || val->getType()->isIntegerTy(8)
+            || val->getType()->isIntegerTy(32)) {
                 return cxt.bv_val((int)n->getSExtValue(), n->getBitWidth());
             } else {
                 DEBUG(val->dump());
@@ -103,11 +113,32 @@ public:
         }
     }
 
-    void push(void) {
+    void push(BasicBlock const* bb=nullptr) {
+        n2vstack.push_back(std::map<StringRef, LocalInfo>(name2val.begin(), name2val.end()));
         solver.push();
+        bbstack.push_back(bb);
     }
+
     void pop(void) {
+        name2val = std::move(*n2vstack.rbegin());
+        n2vstack.pop_back();
         solver.pop();
+        bbstack.pop_back();
+    }
+
+    void show_path(BasicBlock const* bb) {
+        if (bb) {
+            outs() << bb->getName();
+        } else {
+            outs() << "(entry)";
+        }
+
+        for (BasicBlock const* bb : bbstack) {
+            if (bb) {
+                outs()<< " -> " << bb->getName();
+            }
+        }
+        outs() << "\n";
     }
 
     void assert_eq(z3::expr a, z3::expr b) {
@@ -127,6 +158,13 @@ public:
 
     z3::expr z3_to_expr(Z3_ast ast) {
         return z3::to_expr(cxt, ast);
+    }
+
+    void reset(void) {
+        solver.reset();
+        n2vstack.clear();
+        name2val.clear();
+        bbstack.clear();
     }
 };
 

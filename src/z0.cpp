@@ -30,8 +30,13 @@ Z0::display_counterexample(void) {
     for (auto& pair : state.name2val) {
         // DEBUG(dbgs() << "looking at variable " << pair.first << "\n");
         StringRef localname = pair.first;
-        assert(localname.startswith("_c0v_"));
-        outs() << "int " << localname.drop_front(5) << " = ";
+        if (localname.startswith("_c0v_")) {
+            outs() << "int " << localname.drop_front(5) << " = ";
+        } else if (localname == "_c0t__result") {
+            outs() << "\\result = ";
+        } else {
+            assert(false && "weird variable name??");
+        }
         Value const* val = pair.second.second->getValue();
         if (z3::symbol* symb = state.lookup_symbol(val)) {
             auto it = symb2num.find(*symb);
@@ -52,22 +57,12 @@ void
 Z0::analyze_z0_assert(CallInst const* ci) {
     Value const* cond = ci->getOperand(0);
     if (is_precondition(ci)) {
-        DEBUG(dbgs() << "Analyzing precondition ");
-        DEBUG(ci->dump());
-        DEBUG(dbgs() << "\n");
         state.assert_eq(state.z3_repr(cond), true_expr);
-        switch (state.check()) {
-            case z3::sat:
-                DEBUG(dbgs() << "Precondition ok\n"); break;
-            case z3::unsat:
-                throw StopZ0("Precondition unsatisfiable!");
-            case z3::unknown:
-                errs() << "Precondition could not be verified!\n"; break;
-        }
     } else { // not a precondition
-        DEBUG(dbgs() << "Analyzing assertion ");
-        DEBUG(ci->dump());
-        DEBUG(dbgs() << "\n");
+        if (!is_reachable()){
+            throw UnreachablePath();
+        }
+        DEBUG(dbgs() << "Analyzing assertion " << *ci << "\n");
         state.push();
         {
             state.assert_eq(state.z3_repr(cond), false_expr);
@@ -75,7 +70,12 @@ Z0::analyze_z0_assert(CallInst const* ci) {
                 case z3::sat:
                     DEBUG(dbgs() << "Found counterexample!\n");
                     display_counterexample();
-                    throw StopZ0("Found counterexample to assertion");
+                    if (ci->getCalledFunction()->getName() == "z0_ensures")
+                        throw StopZ0("Found counterexample to postcondition");
+                    else if (ci->getCalledFunction()->getName() == "z0_loop_invariant")
+                        throw StopZ0("Found counterexample to loop invariant");
+                    else
+                        throw StopZ0("Found counterexample to assertion");
                 case z3::unsat:
                     DEBUG(dbgs() << "Assertion verified!:\n");
                     DEBUG(dbgs() << to_string(state.solver.assertions()));
@@ -112,7 +112,6 @@ Z0::check_div(z3::expr a, z3::expr b) {
     state.pop();
     state.add(!fdiv);
 }
-
 
 /* Implement bitvector arithmetic*/
 #define Z3_MK(name, a, b) state.z3_to_expr(Z3_mk_##name(state.cxt, a, b))

@@ -1,0 +1,38 @@
+#use <z0>
+int main() {
+  return 0;
+}
+
+int test_paths_symmetric(bool cond, int x, int y)
+//@ensures z0_ensures(\result == x + y);
+{
+  int z = 0;
+  if (cond) {
+    z += x;
+  } else {
+    z += y;
+  }
+  if (!cond) {
+    z += x;
+  } else {
+    z += y;
+  }
+  return z;
+}
+
+int test_paths_asymmetric(bool cond)
+//@ensures z0_ensures(cond == (\result == 1));
+{
+  if (cond) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+bool test_unsat_requires()
+//@requires z0_requires(false);
+//@ensures z0_ensures(\result);
+{
+  return true;
+}
